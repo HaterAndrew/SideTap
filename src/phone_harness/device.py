@@ -25,6 +25,11 @@ class DeviceError(RuntimeError):
 
 PROCS = ("tunnel", "runwda", "forward8100", "forward9100", "syslog")
 
+# Every go-ios child inherits this, so the tunnel server and every client that
+# looks it up (`tunnel ls`, runwda, image, screenshot, syslog) agree on one
+# port without each call site passing it. See config.GO_IOS_AGENT_PORT.
+os.environ["GO_IOS_AGENT_PORT"] = config.GO_IOS_AGENT_PORT
+
 
 # ---- per-run subprocess memoization -----------------------------------------
 # `ios list`, `ios apps --list` and netstat each get called more than once
@@ -187,7 +192,7 @@ def list_apps() -> list[dict]:
     return apps
 
 
-def running_apps() -> list[dict]:
+def running_apps() -> list[dict]:  # noqa: vulture  (called from helpers.py)
     """Apps with a live process, newest launch first: [{name, pid, started}].
 
     `ios ps` over USB (0.69s measured 2026-09-04). IsApplication drops the
@@ -214,7 +219,7 @@ def running_apps() -> list[dict]:
     return apps
 
 
-def kill_app(bundle_id: str) -> bool:
+def kill_app(bundle_id: str) -> bool:  # noqa: vulture  (called from helpers.py)
     """Force-quit an app by bundle id (`ios kill`): the switcher's swipe-up.
     False when go-ios reports nothing to kill (already gone)."""
     proc = _run(["kill", bundle_id], timeout=15)
@@ -497,8 +502,10 @@ def start_tunnel() -> None:  # noqa: vulture  (called from admin.py/viewer.py, o
     if proc_status("tunnel") == "dead":
         raise DeviceError(
             "Tunnel failed to start. Log tail:\n" + log_tail("tunnel") + "\n"
-            "Fix: run `ios tunnel start` in an **admin** terminal (needs wintun.dll in "
-            "C:\\Windows\\System32, from https://www.wintun.net), keep it open, then retry."
+            "Fix: run `$env:GO_IOS_AGENT_PORT="
+            f"{config.GO_IOS_AGENT_PORT}; ios tunnel start` in an **admin** PowerShell "
+            "(needs wintun.dll in C:\\Windows\\System32, from https://www.wintun.net), "
+            "keep it open, then retry."
         )
 
 

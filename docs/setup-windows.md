@@ -37,7 +37,10 @@ If the menu still does not appear, force-close Settings and open it again.
 3. For the iOS 17+ tunnel, userspace mode usually works with no extra steps
    (`phone-harness up` tries it first). If it fails, doctor will tell you to:
    download `wintun.dll` from https://www.wintun.net, copy it to
-   `C:\Windows\System32` (admin), and run `ios tunnel start` in an admin terminal.
+   `C:\Windows\System32` (admin), and run
+   `$env:GO_IOS_AGENT_PORT=28100; ios tunnel start` in an admin PowerShell.
+   SideTap looks the tunnel up on port 28100 (`GO_IOS_AGENT_PORT` in `.env`),
+   not go-ios's default 60105, which Hyper-V often reserves at boot.
 
 ## Step 3 — Sideload WebDriverAgent (free Apple ID)
 

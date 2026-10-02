@@ -5,6 +5,24 @@ entries only. Newest first.
 
 ---
 
+## 2026-10-01 — Tunnel "failed to start": Hyper-V had reserved go-ios's port
+
+- Symptom: Fix input wizard stopped at "Starting tunnel + WDA" with
+  `listen tcp 127.0.0.1:60105: bind: An attempt was made to access a socket
+  in a way forbidden by its access permissions`. Nothing held the port.
+- Root cause: 60105 is go-ios's default tunnel-agent port and it sits in
+  Windows' dynamic range (49152-65535). Hyper-V/WinNAT reserve blocks of that
+  range at boot; `netsh interface ipv4 show excludedportrange protocol=tcp`
+  listed 60103-60202. A reserved port refuses the bind, so it can break on
+  any reboot and fix itself on the next.
+- Fix: `config.GO_IOS_AGENT_PORT` (default 28100, below the dynamic range),
+  exported once by `device.py` so every go-ios child (tunnel server AND every
+  client: `tunnel ls`, runwda, image, screenshot, syslog) agrees on it. go-ios
+  reads `GO_IOS_AGENT_PORT`; the userspace tunnel then takes port+1 (28101).
+  Verified live: tunnel up in ~1s, doctor 11/11.
+- The manual fallback line must carry the port too: a bare `ios tunnel start`
+  in an admin terminal listens on 60105, where SideTap no longer looks.
+
 ## 2026-09-03 — one-liners: viewer Enter-is-Send
 
 - Removing the `if (ev.key === 'Enter') ch = '\n';` line left the `else if`

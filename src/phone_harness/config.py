@@ -45,6 +45,14 @@ MJPEG_PORT = int(get("MJPEG_PORT", "9100") or "9100")  # noqa: vulture
 
 WDA_URL = f"http://127.0.0.1:{WDA_PORT}"
 
+# go-ios's tunnel agent HTTP port, shared by the tunnel it starts and every
+# go-ios call that looks the tunnel up. go-ios defaults to 60105, inside
+# Windows' dynamic range (49152-65535) where Hyper-V/WinNAT reserve blocks at
+# boot, and a reserved port refuses the bind ("forbidden by its access
+# permissions"; 60103-60202 on 2026-10-01). Below 49152 nothing reserves it.
+# Not per-instance: the tunnel is one all-devices daemon.
+GO_IOS_AGENT_PORT = get("GO_IOS_AGENT_PORT", "28100") or "28100"
+
 
 # Optional overrides
 # Read by device.detect_wda_bundle; else auto-detected from installed apps.

@@ -111,6 +111,26 @@ def test_instance_env_rehomes_state_and_ports(restored_config):
     assert cfg.WDA_URL.endswith(":8102")
 
 
+def test_go_ios_agent_port_default_is_outside_the_windows_dynamic_range(
+    restored_config,
+):
+    # go-ios's own default, 60105, sits inside 49152-65535, where Hyper-V and
+    # WinNAT reserve port blocks at boot: on 2026-10-01 60103-60202 was
+    # reserved and `ios tunnel start` could not bind (docs/ERRORS.md).
+    restored_config.delenv("GO_IOS_AGENT_PORT", raising=False)
+    cfg = importlib.reload(config)
+    assert int(cfg.GO_IOS_AGENT_PORT) < 49152
+
+
+def test_every_go_ios_child_inherits_the_agent_port():
+    # The tunnel SERVER and every go-ios CLIENT (tunnel ls, runwda, image,
+    # screenshot, syslog) must agree on the port, and they only meet through
+    # the environment each child inherits from this process.
+    import os
+
+    assert os.environ.get("GO_IOS_AGENT_PORT") == str(device.config.GO_IOS_AGENT_PORT)
+
+
 def test_defaults_are_the_pre_multidevice_harness(restored_config):
     cfg = _reload_config(restored_config)
     assert cfg.STATE_DIR == cfg.REPO_ROOT / ".state"
